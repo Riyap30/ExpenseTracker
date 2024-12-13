@@ -1,5 +1,6 @@
 package com.example.demo.entities;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -25,6 +26,11 @@ public class Group {
     @JoinColumn(name = "user_id")
     @JsonBackReference // child side of user-createdGroups relationship
     private User admin;
+
+
+    @OneToMany(mappedBy = "group", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Category> categories = new ArrayList<>();
+
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
