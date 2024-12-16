@@ -119,45 +119,50 @@ export default function DashboardPage() {
             {/* User Data Summary */}
             <div className="bg-white shadow-lg rounded-lg p-6">
                 <h2 className="text-2xl font-semibold mb-6 text-gray-800">Your Summary</h2>
-                
+
                 <div className="grid grid-cols-2 gap-6">
-                    <div className="bg-blue-200 p-6 rounded-lg text-center hover:bg-blue-300 transition ease-in-out duration-200">
-                    <Link to="/expenses">
-                        <h3 className="text-lg font-medium text-gray-700">Total Expenses</h3>
-                        <p className="text-3xl font-bold text-gray-900">
-                        {"$" + totalExpenses || 0}
-                        </p>
-                    </Link>
+                    {/* Total Expenses Card */}
+                    <div className="bg-teal-200 p-6 rounded-lg text-center hover:bg-teal-300 transition ease-in-out duration-200">
+                        <Link to="/expenses">
+                            <h3 className="text-lg font-medium text-gray-700">Total Expenses</h3>
+                            <p className="text-3xl font-bold text-gray-900">
+                                {"$" + totalExpenses || 0}
+                            </p>
+                        </Link>
                     </div>
 
-                    <div className="bg-green-200 p-6 rounded-lg text-center hover:bg-green-300 transition ease-in-out duration-200">
-                    <h3 className="text-lg font-medium text-gray-700">Group Details</h3>
-                    {groupsDetails && groupsDetails.length > 0 ? (
-                        <ul className="mt-2">
-                        {groupsDetails.map((group) => (
-                            <li key={group.id} className="mb-2 text-sm font-medium text-gray-700">
-                            <a href={`${group.id}/group`} className="hover:underline hover:text-green-600">
-                                {group.name}
-                            </a>
-                            </li>
-                        ))}
-                        </ul>
-                    ) : (
-                        <p className="text-sm text-gray-500">No groups found.</p>
-                    )}
+                    {/* Group Details Card */}
+                    <div className="bg-gray-700 p-6 rounded-lg text-center hover:bg-gray-600 transition ease-in-out duration-200">
+                        <h3 className="text-lg font-medium text-white">Group Details</h3>
+                        {groupsDetails && groupsDetails.length > 0 ? (
+                            <ul className="mt-2">
+                                {groupsDetails.map((group) => (
+                                    <li key={group.id} className="mb-2 text-sm font-medium text-gray-200">
+                                        <a
+                                            href={`${group.id}/group`}
+                                            className="hover:underline hover:text-gray-300"
+                                        >
+                                            {group.name}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p className="text-sm text-gray-400">No groups found.</p>
+                        )}
                     </div>
 
+                    {/* Add Group Button */}
                     <div className="col-span-2 flex justify-center">
-                    <button
-                        className="bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition ease-in-out duration-200"
-                        onClick={() => setIsModalOpen(true)}
-                    >
-                        Add Group
-                    </button>
+                        <button
+                            className="bg-teal-600 text-white py-3 px-6 rounded-lg hover:bg-teal-700 transition ease-in-out duration-200"
+                            onClick={() => setIsModalOpen(true)}
+                        >
+                            Add Group
+                        </button>
                     </div>
                 </div>
-                </div>
-
+            </div>
 
             {/* Modal for Adding Group */}
             {isModalOpen && (
@@ -172,10 +177,10 @@ export default function DashboardPage() {
                             className="mt-1 p-2 border border-gray-300 rounded-lg w-full"
                         />
                         <input
-                          type = "date"
-                          defaultValue = {new Date(newGroup.date).toISOString().split("T")[0]}
-                          readOnly
-                          className = "mt-1 p-2 border border-gray-300 rounded-lg w-full"
+                            type="date"
+                            defaultValue={new Date(newGroup.date).toISOString().split("T")[0]}
+                            readOnly
+                            className="mt-1 p-2 border border-gray-300 rounded-lg w-full"
                         />
                         <div className="text-right mt-4">
                             <button
@@ -185,7 +190,7 @@ export default function DashboardPage() {
                                 Cancel
                             </button>
                             <button
-                                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                                className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
                                 onClick={handleAddGroup}
                             >
                                 Add Group
@@ -195,5 +200,6 @@ export default function DashboardPage() {
                 </div>
             )}
         </div>
+
     );
 }

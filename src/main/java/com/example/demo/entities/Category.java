@@ -1,6 +1,7 @@
 package com.example.demo.entities;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
@@ -16,8 +17,7 @@ public class Category {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-
-
+    private String name;
     public void setName(String name) {
         this.name = name;
     }
@@ -30,7 +30,18 @@ public class Category {
         this.group = group;
     }
 
-    private String name;
+
+
+    private boolean suggestedByChatGPT;
+
+    public boolean isSuggestedByChatGPT() {
+        return suggestedByChatGPT;
+    }
+
+    public void setSuggestedByChatGPT(boolean suggestedByChatGPT) {
+        this.suggestedByChatGPT = suggestedByChatGPT;
+    }
+
 
     // Flag to indicate if the category is global (applicable to all groups)
 
@@ -64,5 +75,8 @@ public class Category {
 
     public List<Split> getSplits() {
         return splits;
+    }
+
+    public void setGroup(Optional<Group> group) {
     }
 }

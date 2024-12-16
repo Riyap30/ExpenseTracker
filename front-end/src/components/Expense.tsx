@@ -201,9 +201,9 @@ function Expense() {
       {/* Graph Section */}
       <div className="bg-white shadow-md rounded-lg p-4 mb-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold mb-4">Expense Overview</h2>
+          <h2 className="text-xl font-semibold mb-4">Track your personal expenses!</h2>
           <button
-            className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+            className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
             onClick={() => setView(view === 'bar' ? 'pie' : 'bar')}
           >
             {view === 'bar' ? 'Switch to Pie Chart' : 'Switch to Bar Chart'}
@@ -221,7 +221,7 @@ function Expense() {
       {/* Add Expense Button */}
       <div className="mb-6 text-right">
         <button
-          className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
+          className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
           onClick={resetForm}
         >
           Add Expense
@@ -347,7 +347,7 @@ function Expense() {
                 </button>
                 <button
                   type="submit"
-                  className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700"
+                  className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
                 >
                   {isEditMode ? 'Update Expense' : 'Add Expense'}
                 </button>

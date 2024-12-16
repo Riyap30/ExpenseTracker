@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+import com.example.demo.util.ApplicationContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,6 +40,9 @@ public class GroupController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    ApplicationContextHolder applicationContextHolder;
+
 
     
     // Create Group
@@ -68,11 +72,13 @@ public class GroupController {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         Optional<Group> group = groupRepository.findById(groupId);
         Optional<GroupDTO> groupDTO = groupServices.findGroupById(groupId);
+        applicationContextHolder.set("groupIdValue", groupId);
         // check if user is a member of the group
         if (group.get().getAdmin().getId() != userId && group.get().getUsers().contains(user) == false) {
             return ResponseEntity.status(401).build();
         }
         return groupDTO.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+
     }
 
 

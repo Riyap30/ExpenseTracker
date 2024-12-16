@@ -155,7 +155,7 @@ function Profile() {
             </div>
             <button
               type="submit"
-              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+              className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
             >
               Update
             </button>
@@ -200,7 +200,7 @@ function Profile() {
             </div>
             <button
               type="submit"
-              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+              className="bg-teal-600 text-white py-2 px-4 rounded-lg hover:bg-teal-700"
             >
               Change Password
             </button>

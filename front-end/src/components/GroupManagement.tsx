@@ -51,11 +51,16 @@ interface Category {
 function GroupManagement() {
 
     const { groupId } = useParams();
-
+    const [description, setDescription] = useState('');
     const [splits, setSplits] = useState<Split[]>([]);
     const [settlements, setSettlements] = useState<Settlement[]>([]);
     const [searchUser, setSearchUser] = useState<User[]>([]);
     const [groupUsers, setGroupUsers] = useState<User[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState('');
+    const [isLoadingCategory, setIsLoadingCategory] = useState(false);
+    const [suggestedCategory, setSuggestedCategory] = useState(null);
+    const [error, setError] = useState('');
+    const [ShowUseSuggestionButton, setShowUseSuggestionButton] = useState(false)
     const [selectedUser, setSelectedUser] = useState<User>({
         id: 0,
         username: "",
@@ -498,31 +503,114 @@ function GroupManagement() {
         }
     }
 
+   const handleSuggestCategory = async () => {
+       console.log("handleSuggestCategory triggered with description:", newSplit.description);
+
+       if (!newSplit.description.trim()) {
+           setError('Description cannot be empty.');
+           return;
+       }
+
+       setError('');
+       setIsLoadingCategory(true);
+
+       try {
+           const response = await fetch('http://localhost:8081/chatgpt/suggest-and-save', {
+               method: "POST",
+               headers: {
+                   "Content-Type": "application/json",
+                   "Authorization": `Bearer ${localStorage.getItem("token")}` // Add the token header
+               },
+               body: JSON.stringify({ description: newSplit.description })
+           });
+
+           if (!response.ok) {
+               throw new Error(`Error: ${response.status} ${response.statusText}`);
+           }
+
+           const data = await response.json();
+           console.log("API Response:", data);
+
+           const { suggestedCategory } = data;
+           setSuggestedCategory(suggestedCategory);
+
+           // Check if the suggested category is already in the list
+           const isCategoryInList = categorys.some(category => category.name === suggestedCategory);
+
+           if (isCategoryInList) {
+               // If category is already in the list, select it
+               setNewSplit(prevSplit => ({
+                   ...prevSplit,
+                   categoryName: suggestedCategory, // Update selected category
+               }));
+
+               // Ensure category exists in the list (even if it's already there)
+               setCategories(prevCategories => [
+                   ...prevCategories.filter(category => category.name !== suggestedCategory), // Remove duplicate if exists
+                   { name: suggestedCategory } // Add suggested category again (if already present, this doesn't create a new entry)
+               ]);
+           }
+
+       } catch (err) {
+           console.error("Failed to fetch category suggestions:", err);
+           setError('Failed to fetch category suggestions. Please try again.');
+       } finally {
+           setIsLoadingCategory(false);
+       }
+   };
+
+   // Function to handle 'Use suggestion' button
+   const handleUseSuggestion = () => {
+       // Add the suggested category to the categories list (if not already present)
+       setCategories(prevCategories => [
+           ...prevCategories,
+           { name: suggestedCategory } // Add the suggested category to the list
+       ]);
+
+       // Select the suggested category
+       setNewSplit((prevSplit) => ({
+           ...prevSplit,
+           categoryName: suggestedCategory,
+       }));
+
+       // Optionally, you can hide the "Use suggestion" button after selection
+
+   };
   
 
     return (
-        <div className="min-h-screen bg-gray-100 p-6">
+        <div className="min-h-screen bg-white-900 p-6">
             {/* Group Information */}
-            <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">{group?.name}</h1>
-                <p className="text-gray-600 mb-4">Admin: <span className="font-medium text-gray-800">{group.adminName}</span></p>
-                <p className="text-gray-600 mb-4">Date Created: <span className="font-medium text-gray-800">{new Date(group.date).toLocaleDateString()}</span></p>
-                
+            <div className="bg-gray-800 shadow-md rounded-xl p-6 mb-6 border border-gray-700">
+                <h1 className="text-3xl font-bold text-teal-400 mb-2">{group?.name}</h1>
+                <p className="text-gray-300 mb-4">
+                    Admin: <span className="font-medium text-teal-300">{group.adminName}</span>
+                </p>
+                <p className="text-gray-300 mb-4">
+                    Date Created: <span className="font-medium text-teal-300">{new Date(group.date).toLocaleDateString()}</span>
+                </p>
+
                 <div className="flex flex-wrap gap-4">
+                    {/* Add User */}
                     <button
-                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300"
+                        className="flex-1 bg-teal-500 text-gray-100 py-2 px-4 rounded-lg hover:bg-teal-600 transition-colors"
                         onClick={() => setIsModalOpen(true)}
                     >
                         Add User
                     </button>
+                    {/* Edit Group */}
                     <button
-                        className="flex-1 bg-yellow-500 text-white py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors duration-300"
-                        onClick={() => {setIsEditGroupModalOpen(true); setNewGroup(group);}}
+                        className="flex-1 bg-gray-500 text-gray-100 py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"
+                        onClick={() => {
+                            setIsEditGroupModalOpen(true);
+                            setNewGroup(group);
+                        }}
                     >
                         Edit Group
                     </button>
+                    {/* Delete Group */}
                     <button
-                        className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors duration-300"
+                        className="flex-1 bg-teal-500 text-gray-100 py-2 px-4 rounded-lg hover:bg-teal-600 transition-colors"
                         onClick={handleDeleteGroup}
                     >
                         Delete Group
@@ -531,117 +619,124 @@ function GroupManagement() {
             </div>
 
 
-            {/* Tabs */}
-            <div className="bg-white shadow-lg rounded-lg p-6">
-            {/* Tabs */}
-            <div className="flex space-x-4 mb-6 border-b border-gray-300">
-                <button
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'splits' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                    onClick={() => handleTabChange('splits')}
-                >
-                    Splits
-                </button>
-                <button
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'settlements' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                    onClick={() => handleTabChange('settlements')}
-                >
-                    Settlements
-                </button>
-                <button
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'users' ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-700'}`}
-                    onClick={() => handleTabChange('users')}
-                >
-                    Users
-                </button>
-            </div>
 
-            {/* Tab Content */}
-            {activeTab === 'splits' && (
-                <div>
-                    <button
-                        className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors mb-4"
-                        onClick={() => setIsSplitModalOpen(true)}
-                    >
-                        Add Split
-                    </button>
-                    <ul>
-                        {splits.filter(split => !split.settled).map((split) => (
-                            <li key={split.id} className="flex justify-between items-center p-4 border-b border-gray-300 hover:bg-gray-50 transition-colors">
-                                <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
-                                    <span className="font-semibold text-lg">Amount: ${split.amount}</span>
-                                    <span className="text-gray-600">Payer: {split.payerName}</span>
-                                    <span className="text-gray-600">Payee: {split.payeeName}</span>
-                                    <span className="text-gray-600">Category: {split.categoryName}</span>
-                                </div>
-                                
-                                <div className="relative">
-                                    <button
-                                        className="text-gray-600 hover:text-gray-900 transition-colors focus:outline-none"
-                                        onClick={() => toggleMenu(split.id)}
-                                        
+            {/* Tabs */}
+            <div className="bg-gray-800 shadow-md rounded-xl p-6 border border-gray-700">
+                <div className="flex space-x-4 mb-6 border-b border-gray-700 pb-2">
+                    {['splits', 'settlements', 'users'].map((tab) => (
+                        <button
+                            key={tab}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                                activeTab === tab
+                                    ? 'bg-teal-500 text-gray-100'
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                            onClick={() => handleTabChange(tab)}
+                        >
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'splits' && (
+                    <div>
+                        <button
+                            className="bg-teal-500 text-gray-100 py-2 px-4 rounded-lg hover:bg-teal-600 transition-colors mb-4"
+                            onClick={() => setIsSplitModalOpen(true)}
+                        >
+                            Add Split
+                        </button>
+                        <ul>
+                            {splits
+                                .filter((split) => !split.settled)
+                                .map((split) => (
+                                    <li
+                                        key={split.id}
+                                        className="flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors rounded-md"
                                     >
-                                        ⋮
-                                    </button>
-                                    {openMenuId === split.id && (
-                                        <div className="absolute right-0 z-10 mt-2 w-48 bg-white border border-gray-300 rounded-lg shadow-lg">
-                                            <button
-                                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
-                                                onClick={(event) => addSettlement(split, event)}
-                                            >
-                                                Settle
-                                            </button>
-                                            <button
-                                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
-                                                onClick={() => openEditModal(split)}
-                                            >
-                                                Edit
-                                            </button>
-                                            <button
-                                                className="block w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors"
-                                                onClick={(event) => handleDeleteSplit(split, event)}
-                                            >
-                                                Delete
-                                            </button>
+                                        <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
+                                            <span className="font-semibold text-lg text-teal-300">Amount: ${split.amount}</span>
+                                            <span className="text-gray-300">Payer: {split.payerName}</span>
+                                            <span className="text-gray-300">Payee: {split.payeeName}</span>
+                                            <span className="text-gray-300">Category: {split.categoryName}</span>
                                         </div>
-                                    )}
+                                        <div className="relative">
+                                            <button
+                                                className="text-gray-300 hover:text-teal-300 transition-colors focus:outline-none"
+                                                onClick={() => toggleMenu(split.id)}
+                                            >
+                                                ⋮
+                                            </button>
+                                            {openMenuId === split.id && (
+                                                <div className="absolute right-0 z-10 mt-2 w-48 bg-gray-700 border border-gray-600 rounded-lg shadow-lg">
+                                                    <button
+                                                        className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-600"
+                                                        onClick={(event) => addSettlement(split, event)}
+                                                    >
+                                                        Settle
+                                                    </button>
+                                                    <button
+                                                        className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-600"
+                                                        onClick={() => openEditModal(split)}
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        className="block w-full text-left px-4 py-2 text-gray-300 hover:bg-gray-600"
+                                                        onClick={(event) => handleDeleteSplit(split, event)}
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* Settlements Tab */}
+                {activeTab === 'settlements' && (
+                    <ul>
+                        {settlements.map((settlement) => (
+                            <li
+                                key={settlement.id}
+                                className="flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors rounded-md"
+                            >
+                                <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
+                                    <span className="font-semibold text-lg text-teal-300">Amount: ${settlement.amount}</span>
+                                    <span className="text-gray-300">Settled Date: {new Date(settlement.settledDate).toLocaleDateString()}</span>
+                                    <span className="text-gray-300">Payer: {settlement.payerName}</span>
+                                    <span className="text-gray-300">Receiver: {settlement.receiverName}</span>
                                 </div>
                             </li>
                         ))}
                     </ul>
-                </div>
-            )}
+                )}
 
-            {activeTab === 'settlements' && (
-                <ul>
-                    {settlements.map((settlement) => (
-                        <li key={settlement.id} className="flex justify-between items-center p-4 border-b border-gray-300 hover:bg-gray-50 transition-colors">
-                            <div className="flex flex-col md:flex-row md:items-center md:space-x-4">
-                                <span className="font-semibold text-lg">Amount: ${settlement.amount}</span>
-                                <span className="text-gray-600">Settled Date: {new Date(settlement.settledDate).toLocaleDateString()}</span>
-                                <span className="text-gray-600">Payer ID: {settlement.payerName}</span>
-                                <span className="text-gray-600">Receiver ID: {settlement.receiverName}</span>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-            {activeTab === 'users' && (
-                <ul>
-                    {user.map((user) => (
-                        <li key={user.id} className="flex justify-between items-center p-4 border-b border-gray-300 hover:bg-gray-50 transition-colors">
-                            <span className="font-semibold text-lg">{user.username}</span>
-                            <button
-                                className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors focus:outline-none"
-                                onClick={(event) => removeUser(user, event)}
+                {/* Users Tab */}
+                {activeTab === 'users' && (
+                    <ul>
+                        {user.map((user) => (
+                            <li
+                                key={user.id}
+                                className="flex justify-between items-center p-4 border-b border-gray-700 hover:bg-gray-700 transition-colors rounded-md"
                             >
-                                Delete
-                            </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
+                                <span className="font-semibold text-lg text-teal-300">{user.username}</span>
+                                <button
+                                    className="bg-red-500 text-gray-100 py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+                                    onClick={(event) => removeUser(user, event)}
+                                >
+                                    Delete
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </div>
+
 
             {/* Modal */}
             {isModalOpen && (
@@ -680,96 +775,132 @@ function GroupManagement() {
                     </div>
                 </div>
             )}
-             {isSplitModalOpen && (
-                <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-                        <h2 className="text-xl font-semibold mb-4">Add New Split</h2>
+         {isSplitModalOpen && (
+             <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                 <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                     <h2 className="text-xl font-semibold mb-4">Add New Split</h2>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Amount:</label>
-                            <input
-                                type="number"
-                                name="amount"
-                                value={newSplit.amount}
-                                onChange={handleInputChange}
-                                className="mt-1 p-2 border border-gray-300 rounded-lg w-full"
-                                required
-                            />
-                        </div>
+                     <div className="mb-4">
+                         <label className="block text-gray-700">Amount:</label>
+                         <input
+                             type="number"
+                             name="amount"
+                             value={newSplit.amount}
+                             onChange={handleInputChange}
+                             className="mt-1 p-2 border border-gray-300 rounded-lg w-full"
+                             required
+                         />
+                     </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Payer:</label>
-                            <select
-                                name="payerId"
-                                value={newSplit.payerId}
-                                onChange={handleInputChange}
-                                className="block w-full p-2 border border-gray-300 rounded-lg"
-                                required
-                            >
-                                <option value="">Select Payer</option>
-                                {groupUsers.map(user => (
-                                    <option key={user.id} value={user.id}>
-                                        {user.username}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                     <div className="mb-4">
+                         <label className="block text-gray-700">Payer:</label>
+                         <select
+                             name="payerId"
+                             value={newSplit.payerId}
+                             onChange={handleInputChange}
+                             className="block w-full p-2 border border-gray-300 rounded-lg"
+                             required
+                         >
+                             <option value="">Select Payer</option>
+                             {groupUsers.map(user => (
+                                 <option key={user.id} value={user.id}>
+                                     {user.username}
+                                 </option>
+                             ))}
+                         </select>
+                     </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Payee:</label>
-                            <select
-                                name="payeeId"
-                                value={newSplit.payeeId}
-                                onChange={handleInputChange}
-                                className="block w-full p-2 border border-gray-300 rounded-lg"
-                                required
-                            >
-                                <option value="">Select Payee</option>
-                                {groupUsers.map(user => (
-                                    <option key={user.id} value={user.id}>
-                                        {user.username}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                     <div className="mb-4">
+                         <label className="block text-gray-700">Payee:</label>
+                         <select
+                             name="payeeId"
+                             value={newSplit.payeeId}
+                             onChange={handleInputChange}
+                             className="block w-full p-2 border border-gray-300 rounded-lg"
+                             required
+                         >
+                             <option value="">Select Payee</option>
+                             {groupUsers.map(user => (
+                                 <option key={user.id} value={user.id}>
+                                     {user.username}
+                                 </option>
+                             ))}
+                         </select>
+                     </div>
 
-                        <div className="mb-4">
-                            <label className="block text-gray-700">Category:</label>
-                            <select
-                                name="categoryName"
-                                value={newSplit.categoryName}
-                                onChange={handleInputChange}
-                                className="block w-full p-2 border border-gray-300 rounded-lg"
-                                required
-                            >
-                                <option value="">Select Category</option>
-                                {categorys.map(category => (
-                                    <option key={category.id} value={category.name}>
-                                        {category.name}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
+                     <div className="mb-4">
+                         <label className="block text-gray-700">Description:</label>
+                         <input
+                             type="text"
+                             name="description"
+                             value={newSplit.description}
+                             onChange={handleInputChange}
+                             onBlur={handleSuggestCategory} // Triggers category suggestion on blur
+                             className="mt-1 p-2 border border-gray-300 rounded-lg w-full"
+                             placeholder="Enter description"
 
-                        <div className="text-right mt-4">
-                            <button
-                                className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 mr-2"
-                                onClick={() => setIsSplitModalOpen(false)}
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-                                onClick={addSplit}
-                                disabled={!newSplit.amount || !newSplit.payerId || !newSplit.payeeId || !newSplit.categoryName}
-                            >
-                                Add Split
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-             {isEditSplitModalOpen && (
+
+                         />
+
+                     </div>
+
+                     {isLoadingCategory && (
+                         <div className="text-blue-600 text-sm mb-2">Loading category suggestions...</div>
+                     )}
+
+                     <div className="mb-4">
+                         <label className="block text-gray-700">Category:</label>
+                         <select
+                             name="categoryName"
+                             value={newSplit.categoryName || ""} // Ensure it never becomes undefined
+                             onChange={handleInputChange} // Handle selection from dropdown
+                             className="block w-full p-2 border border-gray-300 rounded-lg"
+                             required
+                         >
+                             <option value="">Select Category</option>
+                             {categorys.map((category) => (
+                                 <option key={category.id} value={category.name}>
+                                     {category.name}
+                                 </option>
+                             ))}
+                         </select>
+
+                         {/* If a suggestion exists, show the "Use suggestion" button */}
+                          {suggestedCategory && !categorys.some((category) => category.name === suggestedCategory) && (
+                             <div className="mt-2 text-sm text-gray-500">
+                                 <b>SplitwiseAI</b> suggests a new category: <span className="font-semibold">{suggestedCategory}</span>
+                                 <button
+                                                 type="button"
+                                                 onClick={handleUseSuggestion}
+                                                 className="ml-2 text-blue-600 underline"
+                                             >
+                                                 Use suggestion!
+                                             </button>
+                             </div>
+                         )}
+                     </div>
+
+
+
+                     <div className="text-right mt-4">
+                         <button
+                             className="bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 mr-2"
+                             onClick={() => setIsSplitModalOpen(false)}
+                         >
+                             Cancel
+                         </button>
+                         <button
+                             className="bg-teal-600 text-grey py-2 px-4 rounded-lg hover:bg-blue-700"
+                             onClick={addSplit}
+                             disabled={!newSplit.amount || !newSplit.payerId || !newSplit.payeeId || !newSplit.categoryName}
+                         >
+                             Add Split
+                         </button>
+                     </div>
+                 </div>
+             </div>
+         )}
+    {isEditSplitModalOpen && (
                 <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
                     <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
                         <h2 className="text-xl font-semibold mb-4">Edit Split</h2>
@@ -884,7 +1015,7 @@ function GroupManagement() {
                                 Cancel
                             </button>
                             <button
-                                className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+                                className="bg-teal-600 text-grey py-2 px-4 rounded-lg hover:bg-blue-700"
                                 onClick={(event) => handleUpdateGroup(group, event)}
                             >
                                 Update Group
